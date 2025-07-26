@@ -6,6 +6,29 @@ project.lock.json
 *.pyc
 nupkg/
 
+# Chess logs
+*.log
+black.log
+white.log
+*_error.log
+live_*.log
+
+# Chess scripts and tests (removed)
+*.ps1
+!play-chess.ps1
+*.sh
+*.bat
+docker-compose.yml
+Dockerfile
+TEST-README.md
+SCRIPTS-README.md
+ClientExample/
+DockerParseTest/
+DockerTest/
+RealDockerTest/
+ReceiverExample/
+WebSocketTest/
+
 # Visual Studio Code
 .vscode/
 

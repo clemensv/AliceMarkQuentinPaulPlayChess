@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PublishAot>false</PublishAot>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>ChessAgent</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +15,20 @@
     <PackageReference Include="CloudNative.CloudEvents" Version="2.8.0" />
     <PackageReference Include="CloudNative.CloudEvents.SystemTextJson" Version="2.8.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
-    <PackageReference Include="FSharp.Core" Version="8.0.0" />
+    <PackageReference Include="Terminal.Gui" Version="1.19.0" />
   </ItemGroup>
+
+  <!-- Pre-build target to ensure engines directory exists -->
+  <Target Name="EnsureEnginesDirectory" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <EnginesDirectory>$(OutputPath)engines</EnginesDirectory>
+    </PropertyGroup>
+    
+    <!-- Create engines directory if it doesn't exist -->
+    <Message Text="🔍 Ensuring engines directory exists..." Importance="high" />
+    <MakeDir Directories="$(EnginesDirectory)" Condition="!Exists('$(EnginesDirectory)')" />
+    <Message Text="✅ Engines directory ready!" Importance="high" />
+    
+  </Target>
 
 </Project>
