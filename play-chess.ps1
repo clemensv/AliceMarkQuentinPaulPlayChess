@@ -7,6 +7,7 @@ param(
     [switch]$DryRun,
     [switch]$Help,
     [switch]$Debug,
+    [switch]$SingleSession,
     [string]$WhitePort = "5672",
     [string]$BlackPort = "5673"
 )
@@ -23,6 +24,7 @@ if ($Help) {
     Write-Host "  -DryRun         Show commands without executing" -ForegroundColor Gray
     Write-Host "  -Debug          Show Windows Terminal command for debugging" -ForegroundColor Gray
     Write-Host "  -Help           Show this help message" -ForegroundColor Gray
+    Write-Host "  -SingleSession  Use single-session mode (White creates both links, Black only accepts)" -ForegroundColor Gray
     Write-Host "  -WhitePort      Port for white player (default: 5672)" -ForegroundColor Gray
     Write-Host "  -BlackPort      Port for black player (default: 5673)" -ForegroundColor Gray
     Write-Host ""
@@ -31,6 +33,7 @@ if ($Help) {
     Write-Host "  .\play-chess.ps1 -Verbose           # With debug output" -ForegroundColor White
     Write-Host "  .\play-chess.ps1 -DryRun            # Test without running" -ForegroundColor White
     Write-Host "  .\play-chess.ps1 -WhitePort 8080    # Custom ports" -ForegroundColor White
+    Write-Host "  .\play-chess.ps1 -SingleSession     # Single-session mode" -ForegroundColor White
     Write-Host ""
     Write-Host "Requirements:" -ForegroundColor Yellow
     Write-Host "  • Windows Terminal installed" -ForegroundColor Gray
@@ -62,17 +65,35 @@ if (-not (Test-Path $ExePath)) {
 }
 
 # Build command line arguments
-$WhiteArgs = @(
-    "--bind", "amqp://localhost:$WhitePort"
-    "--connect", "amqp://localhost:$BlackPort"
-    "--color", "white"
-)
+if ($SingleSession) {
+    # Single-session mode: White creates both send and receive links, Black only accepts connections
+    $WhiteArgs = @(
+        "--bind", "amqp://localhost:$WhitePort"
+        "--connect", "amqp://localhost:$BlackPort"
+        "--color", "white"
+        "--single-session"
+    )
 
-$BlackArgs = @(
-    "--bind", "amqp://localhost:$BlackPort" 
-    "--connect", "amqp://localhost:$WhitePort"
-    "--color", "black"
-)
+    # Black in single-session mode does NOT connect - it only accepts
+    $BlackArgs = @(
+        "--bind", "amqp://localhost:$BlackPort"
+        "--color", "black"
+        "--single-session"
+    )
+} else {
+    # Normal mode: Both players connect to each other
+    $WhiteArgs = @(
+        "--bind", "amqp://localhost:$WhitePort"
+        "--connect", "amqp://localhost:$BlackPort"
+        "--color", "white"
+    )
+
+    $BlackArgs = @(
+        "--bind", "amqp://localhost:$BlackPort" 
+        "--connect", "amqp://localhost:$WhitePort"
+        "--color", "black"
+    )
+}
 
 if ($Verbose) {
     $WhiteArgs += "--verbose"
@@ -88,10 +109,17 @@ if ($NoColor) {
 $WhiteArgsStr = $WhiteArgs -join " "
 $BlackArgsStr = $BlackArgs -join " "
 
-Write-Host "🎯 Starting ChessAgent Match..." -ForegroundColor Cyan
+$ModeText = if ($SingleSession) { "SINGLE-SESSION" } else { "NORMAL" }
+
+Write-Host "🎯 Starting ChessAgent Match in $ModeText mode..." -ForegroundColor Cyan
 Write-Host "⚪ White Player: amqp://localhost:$WhitePort" -ForegroundColor White
 Write-Host "⚫ Black Player: amqp://localhost:$BlackPort" -ForegroundColor Gray
 Write-Host "🔧 Executable: $ExePath" -ForegroundColor Green
+
+if ($SingleSession) {
+    Write-Host "🔗 Single-session mode: White creates both send and receive links" -ForegroundColor Yellow
+    Write-Host "🔗 Single-session mode: Black only accepts incoming connections" -ForegroundColor Yellow
+}
 
 if ($Verbose) {
     Write-Host "📋 Verbose mode enabled" -ForegroundColor Yellow

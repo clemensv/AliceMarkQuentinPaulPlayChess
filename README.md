@@ -148,6 +148,87 @@ AMQP: Successfully sent move via reply-to link: Nf3
 
 ## Advanced Usage
 
+### **Single-Session Mode**
+
+For advanced AMQP patterns, this project includes a **single-session mode** where only one player establishes connections:
+
+```powershell
+# Launch in single-session mode
+.\play-chess.ps1 -SingleSession
+
+# Or use the dedicated demo script  
+.\demo-single-session.ps1
+```
+
+**How Single-Session Mode Works:**
+
+| **Normal Mode** | **Single-Session Mode** |
+|----------------|------------------------|
+| Both players connect to each other | Only White connects to Black |
+| Each player creates 1 outbound link | White creates 2 links (send + receive) |
+| Symmetric P2P architecture | Asymmetric client-server-like pattern |
+
+```
+Normal Mode:           Single-Session Mode:
+Alice ←──────────→ Mark    Alice ────→ Mark
+      AMQP Links              ├─ Send Link
+                              └─ Reply Link
+```
+
+**Key Benefits:**
+- **Simplified network topology** - Only one endpoint needs to know the other's address
+- **Connection management** - Centralized link creation reduces complexity  
+- **Firewall friendly** - Only one player needs inbound port access
+- **Enterprise patterns** - Mimics client-server while maintaining AMQP benefits
+
+**Technical Implementation:**
+```csharp
+// White creates both sender and receiver links
+var senderLink = new SenderLink(session, "chess-sender", "chess");
+var receiverLink = new ReceiverLink(session, "chess-receiver", "chess-reply");
+
+// Black only accepts incoming connections - no outbound links
+// Black uses the reply-to mechanism to send moves back to White
+```
+
+### **Headless Mode**
+
+For automated testing, CI/CD pipelines, or server deployments, use the **headless mode**:
+
+```powershell
+# Launch headless chess match (no UI, auto-starts, full logging)
+.\demo-headless.ps1
+
+# Or manually:
+# Black player (server)
+dotnet run -- --bind amqp://localhost:5673 --color black --single-session --headless
+
+# White player (client) 
+dotnet run -- --bind amqp://localhost:5672 --connect amqp://localhost:5673 --color white --single-session --headless
+```
+
+**Headless Mode Features:**
+- **🤖 No UI** - Runs without Terminal.Gui interface
+- **🚀 Auto-start** - Begins playing immediately (no "Start Game" button)
+- **📋 Full logging** - Automatically enables verbose output to console
+- **🔧 AMQP tracing** - Enables AMQP .NET Lite debug tracing for protocol analysis
+- **⚡ Perfect for CI/CD** - Ideal for automated testing and server deployments
+
+**Output Example:**
+```
+🤖 Starting ChessAgent in HEADLESS mode as WHITE player
+🔗 Bind: amqp://localhost:5672
+🔗 Connect: amqp://localhost:5673
+🔧 AMQP .NET Lite tracing enabled (DEBUG level)
+
+[AMQP Frame] OPEN: container-id=...
+[AMQP Verbose] session.begin: channel=0
+📤 AMQP Send: e4
+🎯 Move 1: e4 (White)
+📥 AMQP Receive: e5
+🎯 Move 2: e5 (Black)
+```
+
 ### **Custom Configuration**
 ```powershell
 # Verbose logging for development
