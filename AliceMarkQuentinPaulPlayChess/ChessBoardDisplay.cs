@@ -33,6 +33,17 @@ public static class ChessBoardDisplay
         {
             Application.Init(); 
             _top = Application.Top;
+            
+            // Override Terminal.Gui's default color scheme (blue background) with black
+            var blackScheme = new ColorScheme 
+            { 
+                Normal = new Terminal.Gui.Attribute(Color.White, Color.Black),
+                Focus = new Terminal.Gui.Attribute(Color.White, Color.Black),
+                HotNormal = new Terminal.Gui.Attribute(Color.BrightYellow, Color.Black),
+                HotFocus = new Terminal.Gui.Attribute(Color.BrightYellow, Color.Black),
+                Disabled = new Terminal.Gui.Attribute(Color.Gray, Color.Black)
+            };
+            Application.Top.ColorScheme = blackScheme;
         }
         catch (Exception ex)
         {
@@ -44,23 +55,28 @@ public static class ChessBoardDisplay
             return;
         }
 
-        var titleCs = new ColorScheme { Normal = new Terminal.Gui.Attribute(Color.White, Color.Blue) };
+        var titleCs = new ColorScheme { Normal = new Terminal.Gui.Attribute(Color.White, Color.Black) };
         var movesCs = new ColorScheme { Normal = new Terminal.Gui.Attribute(Color.White, Color.DarkGray) };
         var negotiationCs = new ColorScheme { Normal = new Terminal.Gui.Attribute(Color.Gray, Color.Black) };
         var statusCs = new ColorScheme { Normal = new Terminal.Gui.Attribute(Color.BrightGreen, Color.Black) };
         var connectionCs = new ColorScheme { Normal = new Terminal.Gui.Attribute(Color.BrightMagenta, Color.Black) };
+        var windowCs = new ColorScheme { Normal = new Terminal.Gui.Attribute(Color.White, Color.Black) };
 
-        _mainWindow = new Window("♟️ ChessAgent - Professional Chess Interface") { X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill() };
+        _mainWindow = new Window("♟️ ChessAgent - Professional Chess Interface") 
+        { 
+            X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill(),
+            ColorScheme = windowCs
+        };
         var playerColor = _isWhite ? "White ⚪" : "Black ⚫";
         _titleLabel = new Label($"♟️ ChessAgent - Playing as {playerColor}") { X = Pos.Center(), Y = 0, ColorScheme = titleCs };
         _boardTextView = new ChessBoardView() { X = 1, Y = 2, Width = 30, Height = 15 };
         _moveHistoryLabel = new Label("") { X = 37, Y = 3, Width = 42, Height = 3, ColorScheme = movesCs };
-        _moveHistoryList = new Label("") { X = 37, Y = 6, Width = 42, Height = 19, ColorScheme = movesCs };
+        _moveHistoryList = new Label("") { X = 37, Y = 6, Width = 42, Height = 23, ColorScheme = movesCs };
         _negotiationLabel = new TextView() { X = 1, Y = 21, Width = 35, Height = 8, ColorScheme = negotiationCs, ReadOnly = true, WordWrap = false };
         _statusLabel = new Label("🔄 Initializing...") { X = 1, Y = 29, Width = 50, Height = 1, ColorScheme = statusCs };
         _connectionLabel = new Label("📡 Starting AMQP connection...") { X = 1, Y = 30, Width = 70, Height = 1, ColorScheme = connectionCs };
         _playAgainButton = new Button("🎮 Play Again") { X = Pos.Center(), Y = 31, IsDefault = true, Visible = false };
-        _startButton = new Button("🚀 Start AMQP Connection") { X = Pos.Center(), Y = 10, IsDefault = true, Visible = true };
+        _startButton = new Button("🚀 Start AMQP Connection") { X = Pos.Center(), Y = 10, Width = 30, Height = 3, IsDefault = true, Visible = true };
         _playAgainButton.Clicked += OnPlayAgainClicked; _startButton.Clicked += OnStartClicked;
 
         var movesTitle = new Label("♟️ Move History") { X = 37, Y = 2, ColorScheme = titleCs };
@@ -177,10 +193,16 @@ public static class ChessBoardDisplay
         {
             if (_moveHistory.Count > 0)
             {
-                var recentMoves = _moveHistory.TakeLast(17).ToList();
+                var recentMoves = _moveHistory.TakeLast(40).ToList(); // 40 half-moves = 20 exchange pairs
+                // Calculate the starting move number for the displayed moves
+                var startingMoveIndex = _moveHistory.Count - recentMoves.Count;
+                
                 for (int i = 0; i < recentMoves.Count; i += 2)
                 {
-                    var moveNum = (i / 2) + 1;
+                    // Calculate the actual exchange number based on position in full history
+                    var actualMoveIndex = startingMoveIndex + i;
+                    var moveNum = (actualMoveIndex / 2) + 1;
+                    
                     var whiteMove = i < recentMoves.Count ? recentMoves[i] : (string.Empty, DateTime.MinValue, true, " ");
                     var blackMove = (i + 1) < recentMoves.Count ? recentMoves[i + 1] : (string.Empty, DateTime.MinValue, false, " ");
                     
